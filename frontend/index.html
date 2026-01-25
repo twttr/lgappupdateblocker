@@ -50,19 +50,18 @@
         .app-container {
             height: 100vh;
             overflow-y: auto;
-            padding: 50px;
-            padding-bottom: 10px;
+            padding: 40px 50px;
             box-sizing: border-box;
         }
         .theme-toggle {
             position: absolute;
-            top: 20px;
+            top: 15px;
             right: 20px;
             background-color: var(--bg-secondary);
             border: 1px solid var(--border-color);
             color: var(--text-primary);
-            padding: 8px 16px;
-            border-radius: 20px;
+            padding: 6px 14px;
+            border-radius: 18px;
             cursor: pointer;
             font-size: 14px;
             transition: all 0.3s;
@@ -72,38 +71,36 @@
         }
         .header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 28px;
             position: relative;
+        }
+        .header h1 {
+            margin: 0 0 15px 0;
+            font-size: 36px;
         }
         .header p {
             max-width: 800px;
-            margin: 20px auto;
+            margin: 0 auto;
             font-size: 18px;
             line-height: 1.5;
             color: var(--text-secondary);
         }
         .cards-container {
             display: flex;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
+            gap: 20px;
         }
         .card {
             background-color: var(--bg-secondary);
-            padding: 20px;
+            padding: 18px;
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.3);
             flex: 1;
-            margin: 0 20px;
             transition: background-color 0.3s;
         }
-        .card:first-child {
-            margin-left: 0;
-        }
-        .card:last-child {
-            margin-right: 0;
-        }
         .response {
-            margin: 20px 50px;
-            padding: 15px;
+            margin: 10px 0;
+            padding: 10px;
             background-color: var(--bg-tertiary);
             border-radius: 4px;
             display: none;
@@ -115,15 +112,15 @@
             color: var(--error-color);
         }
         button {
-            padding: 10px 20px;
-            font-size: 16px;
+            padding: 12px 22px;
+            font-size: 17px;
             background-color: var(--button-bg);
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            margin-right: 10px;
-            margin-bottom: 10px;
+            margin-right: 12px;
+            margin-bottom: 12px;
             transition: background-color 0.3s;
         }
         button:hover:not(:disabled) {
@@ -140,23 +137,24 @@
             border-radius: 4px;
             margin-top: 15px;
             font-family: monospace;
+            font-size: 15px;
             white-space: pre-wrap;
             word-break: break-word;
-            max-height: 300px;
+            max-height: 200px;
             overflow-y: auto;
             border: 1px solid var(--border-color);
             transition: background-color 0.3s, border-color 0.3s;
         }
         textarea {
             width: 100%;
-            min-height: 100px;
-            padding: 10px;
+            min-height: 80px;
+            padding: 12px;
             background-color: var(--bg-tertiary);
             color: var(--text-primary);
             border: 1px solid var(--border-color);
             border-radius: 4px;
             font-family: monospace;
-            font-size: 14px;
+            font-size: 15px;
             resize: vertical;
             transition: background-color 0.3s, border-color 0.3s;
             box-sizing: border-box;
@@ -167,16 +165,16 @@
         }
         .ssh-management-container {
             display: flex;
-            gap: 30px;
+            gap: 20px;
         }
         .ssh-management-left {
             flex: 1;
-            padding-right: 30px;
+            padding-right: 20px;
             border-right: 1px solid var(--border-color);
         }
         .ssh-management-right {
             flex: 1;
-            padding-left: 30px;
+            padding-left: 20px;
         }
         .blocked-apps-warning {
             color: var(--error-color);
@@ -184,15 +182,23 @@
             margin-bottom: 10px;
         }
         .section {
-            margin-bottom: 30px;
+            margin-bottom: 0;
         }
         h2 {
             color: var(--text-primary);
             border-bottom: 2px solid var(--text-accent);
             padding-bottom: 10px;
+            margin: 0 0 15px 0;
+            font-size: 24px;
         }
         h3 {
             color: var(--text-secondary);
+            margin: 0 0 12px 0;
+            font-size: 18px;
+        }
+        h4 {
+            margin: 15px 0 10px 0;
+            font-size: 18px;
         }
         .debug-overlay {
             position: fixed;
@@ -282,17 +288,17 @@
             <div class="section">
                 <h2>Update Domains Blocking</h2>
                 <h3>Block LG update servers to prevent system updates</h3>
-                <div id="hostsStatus" style="margin: 15px 0; font-weight: bold;">Checking hosts file...</div>
+                <div id="hostsStatus" style="margin: 10px 0; font-weight: bold;">Checking hosts file...</div>
                 <button id="addUpdateDomains" disabled>Block Update Domains</button>
                 <button id="removeUpdateDomains" disabled>Unblock Update Domains</button>
                 
-                <div style="margin-top: 20px; padding: 15px; background-color: var(--warning-bg); border-radius: 4px; border: 1px solid var(--border-color);">
-                    <strong style="color: var(--warning-text);">⚠️ Warning:</strong> <span style="color: var(--text-secondary);">Changes to /etc/hosts are not persistent across hard reboots. Install the persistent script below to automatically reapply blocks on boot.</span>
+                <div style="margin-top: 15px; padding: 12px; background-color: var(--warning-bg); border-radius: 4px; border: 1px solid var(--border-color);">
+                    <strong style="color: var(--warning-text);">⚠️ Warning:</strong> <span style="color: var(--text-secondary);">Changes to /etc/hosts are not persistent across hard reboots.</span>
                 </div>
-                
-                <div style="margin-top: 20px;">
+
+                <div style="margin-top: 15px;">
                     <h4>Persistent Blocking</h4>
-                    <div id="persistentScriptStatus" style="margin: 15px 0; font-weight: bold;">Checking persistent script...</div>
+                    <div id="persistentScriptStatus" style="margin: 10px 0; font-weight: bold;">Checking persistent script...</div>
                     <button id="installPersistentScript" disabled>Install Persistent Script</button>
                     <button id="removePersistentScript" disabled>Remove Persistent Script</button>
                 </div>
@@ -300,30 +306,28 @@
         </div>
     </div>
     
-    <div class="card" style="margin: 0 0 20px 0;">
+    <div class="card" style="margin: 0 0 15px 0;">
         <div class="section">
             <h2>SSH Key Management</h2>
             <div class="ssh-management-container">
                 <div class="ssh-management-left">
-                    <p>Manage SSH keys for root access</p>
                     <button id="clearSSHKeys" disabled>Clear All SSH Keys</button>
                     <button id="refreshSSHKeys" disabled>Refresh Keys</button>
-                    <p style="color: var(--text-secondary); font-size: 14px; margin-top: 10px;">Note: The root password is "alpine". Hard reboot required to re-enable password auth after clearing keys.</p>
-                    <div id="sshKeysContent" class="update-info" style="margin: 15px 0;">Loading...</div>
+                    <p style="color: var(--text-secondary); font-size: 13px; margin: 8px 0;">Root password: "alpine"</p>
+                    <div id="sshKeysContent" class="update-info" style="margin: 10px 0;">Loading...</div>
                 </div>
-                
+
                 <div class="ssh-management-right">
                     <h3 style="margin-top: 0;">Add New SSH Key</h3>
-                    <p style="color: var(--text-secondary); font-size: 14px;">Paste your public SSH key below (e.g., ssh-rsa AAAA... user@host)</p>
                     <textarea id="sshKeyInput" placeholder="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQ... user@example.com" disabled></textarea>
-                    <button id="addSSHKey" disabled style="margin-top: 10px;">Add SSH Key</button>
+                    <button id="addSSHKey" disabled style="margin-top: 8px;">Add SSH Key</button>
                 </div>
             </div>
         </div>
     </div>
-    
-    <div style="text-align: center; padding: 20px 0; color: var(--text-secondary); font-size: 14px;">
-        Made by <a href="https://github.com/dr0dr1dr2dr3" style="color: var(--text-accent); text-decoration: none;">https://github.com/dr0dr1dr2dr3</a>
+
+    <div style="text-align: center; padding: 10px 0; color: var(--text-secondary); font-size: 13px;">
+        Made by <a href="https://github.com/dr0dr1dr2dr3" style="color: var(--text-accent); text-decoration: none;">dr0dr1dr2dr3</a>
     </div>
     
     <div id="debugOverlay" class="debug-overlay">
