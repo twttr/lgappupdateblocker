@@ -1,4 +1,5 @@
 const path = require('path');
+const webpack = require('webpack');
 const CopyPlugin = require("copy-webpack-plugin");
 const AddAssetWebpackPlugin = require("add-asset-webpack-plugin");
 
@@ -42,6 +43,9 @@ module.exports = (env) => [
       ],
     },
     plugins: [
+      new webpack.DefinePlugin({
+        __DEBUG__: JSON.stringify(!env.production),
+      }),
       new CopyPlugin({
         patterns: [
           { context: 'assets', from: '**/*' },
@@ -57,7 +61,7 @@ module.exports = (env) => [
           ...appinfoJson,
           id: packageJson.name,
           version: packageJson.version,
-        });``
+        });
       }),
     ],
   },

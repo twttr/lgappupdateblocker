@@ -194,6 +194,67 @@
         h3 {
             color: var(--text-secondary);
         }
+        .debug-overlay {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 200px;
+            background-color: rgba(0, 0, 0, 0.9);
+            border-top: 2px solid var(--text-accent);
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+        }
+        .debug-overlay.visible {
+            display: flex;
+        }
+        .debug-overlay.collapsed {
+            height: 40px;
+        }
+        .debug-overlay.collapsed .debug-log {
+            display: none;
+        }
+        .debug-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 15px;
+            background-color: rgba(30, 30, 30, 1);
+            border-bottom: 1px solid var(--border-color);
+        }
+        .debug-header span {
+            color: var(--text-accent);
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .debug-header button {
+            padding: 4px 12px;
+            font-size: 12px;
+            margin: 0 0 0 10px;
+        }
+        .debug-log {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 15px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #00ff00;
+        }
+        .debug-log .log-entry {
+            margin-bottom: 4px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .debug-log .log-entry.error {
+            color: #ff4444;
+        }
+        .debug-log .log-entry.warn {
+            color: #ffaa00;
+        }
+        .debug-log .log-entry.info {
+            color: #00aaff;
+        }
     </style>
 </head>
 <body>
@@ -265,6 +326,17 @@
         Made by <a href="https://github.com/dr0dr1dr2dr3" style="color: var(--text-accent); text-decoration: none;">https://github.com/dr0dr1dr2dr3</a>
     </div>
     
+    <div id="debugOverlay" class="debug-overlay">
+        <div class="debug-header">
+            <span>Debug Console</span>
+            <div>
+                <button id="debugClear">Clear</button>
+                <button id="debugToggle">Hide</button>
+            </div>
+        </div>
+        <div id="debugLog" class="debug-log"></div>
+    </div>
+
     <script src="index.js"></script>
     <script>
         function toggleTheme() {

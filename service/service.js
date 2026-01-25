@@ -1,5 +1,5 @@
-const pkgInfo = require('./package.json');
-const Service = require('webos-service');
+var pkgInfo = require('./package.json');
+var Service = require('webos-service');
 var fs = require('fs');
 var path = require('path');
 
@@ -12,11 +12,11 @@ function ensureDirectoryExistence(filePath) {
     fs.mkdirSync(dirname);
 }
 
-const service = new Service(pkgInfo.name);
+var service = new Service(pkgInfo.name);
 
 service.register('hello', function(message) {
     console.log('Hello method called');
-    
+
     message.respond({
         returnValue: true,
         response: 'world'
@@ -25,19 +25,19 @@ service.register('hello', function(message) {
 
 service.register('/hello', function(message) {
     console.log('/hello method called');
-    
+
     message.respond({
         returnValue: true,
         response: 'world'
     });
 });
 
-const UPDATE_INFO_PATH = '/mnt/lg/cmn_data/var/palm/data/com.webos.appInstallService/updateInfo';
+var UPDATE_INFO_PATH = '/mnt/lg/cmn_data/var/palm/data/com.webos.appInstallService/updateInfo';
 
 service.register('readUpdateInfo', function(message) {
     try {
         if (fs.existsSync(UPDATE_INFO_PATH)) {
-            const content = fs.readFileSync(UPDATE_INFO_PATH, 'utf8');
+            var content = fs.readFileSync(UPDATE_INFO_PATH, 'utf8');
             message.respond({
                 returnValue: true,
                 content: content
@@ -78,25 +78,24 @@ service.register('clearUpdateInfo', function(message) {
     }
 });
 
-var autostartScript = 
-`#!/bin/sh
+var autostartScript = '#!/bin/sh\n' +
+    '\n' +
+    'output=$(luna-send -n 1 "luna://org.webosbrew.appupdateblocker.service/addUpdateDomains" \'{}\')\n' +
+    '\n' +
+    'if echo "$output" | grep -q \'status unknown\'; then\n' +
+    '\t/var/lib/webosbrew/init.d/appupdateblocker &\n' +
+    '\texit\n' +
+    'fi\n' +
+    '\n' +
+    'if echo "$output" | grep -q \'errorText\'; then\n' +
+    '\trm -f /var/lib/webosbrew/init.d/appupdateblocker\n' +
+    'fi';
 
-output=$(luna-send -n 1 "luna://org.webosbrew.appupdateblocker.service/addUpdateDomains" \'{}\')
-
-if echo "$output" | grep -q \'status unknown\'; then
-	/var/lib/webosbrew/init.d/appupdateblocker &
-	exit
-fi
-
-if echo "$output" | grep -q \'errorText\'; then
-	rm -f /var/lib/webosbrew/init.d/appupdateblocker
-fi`;
-
-const PERSISTENT_SCRIPT_PATH = '/var/lib/webosbrew/init.d/appupdateblocker';
+var PERSISTENT_SCRIPT_PATH = '/var/lib/webosbrew/init.d/appupdateblocker';
 
 service.register('checkPersistentScript', function(message) {
     try {
-        const exists = fs.existsSync(PERSISTENT_SCRIPT_PATH);
+        var exists = fs.existsSync(PERSISTENT_SCRIPT_PATH);
         message.respond({
             returnValue: true,
             exists: exists
@@ -114,17 +113,17 @@ service.register('installPersistentScript', function(message) {
         if (fs.existsSync(PERSISTENT_SCRIPT_PATH)) {
             message.respond({
                 returnValue: false,
-                errorText: "Persistent script already exists"
+                errorText: 'Persistent script already exists'
             });
             return;
         }
-        
+
         ensureDirectoryExistence(PERSISTENT_SCRIPT_PATH);
         fs.writeFileSync(PERSISTENT_SCRIPT_PATH, autostartScript);
         fs.chmodSync(PERSISTENT_SCRIPT_PATH, '755');
         message.respond({
             returnValue: true,
-            message: "Persistent script installed successfully"
+            message: 'Persistent script installed successfully'
         });
     } catch (error) {
         message.respond({
@@ -140,12 +139,12 @@ service.register('removePersistentScript', function(message) {
             fs.unlinkSync(PERSISTENT_SCRIPT_PATH);
             message.respond({
                 returnValue: true,
-                message: "Persistent script removed successfully"
+                message: 'Persistent script removed successfully'
             });
         } else {
             message.respond({
                 returnValue: true,
-                message: "Persistent script does not exist"
+                message: 'Persistent script does not exist'
             });
         }
     } catch (error) {
@@ -156,32 +155,32 @@ service.register('removePersistentScript', function(message) {
     }
 });
 
-// Keep the original autoblock for backwards compatibility
 service.register('autoblock', function(message) {
-	try {
-		ensureDirectoryExistence('/var/lib/webosbrew/init.d/appupdateblocker');
-		fs.writeFileSync('/var/lib/webosbrew/init.d/appupdateblocker', autostartScript);
-		fs.chmodSync('/var/lib/webosbrew/init.d/appupdateblocker', '755');
-		message.respond({
-			"returnValue": true,
-			"response": "Created appupdateblocker script."
-		});
-	} catch (error) {
-		message.respond({
-			"returnValue": false,
-			"errorText": error.stack
-		});
-	}
+    try {
+        ensureDirectoryExistence('/var/lib/webosbrew/init.d/appupdateblocker');
+        fs.writeFileSync('/var/lib/webosbrew/init.d/appupdateblocker', autostartScript);
+        fs.chmodSync('/var/lib/webosbrew/init.d/appupdateblocker', '755');
+        message.respond({
+            returnValue: true,
+            response: 'Created appupdateblocker script.'
+        });
+    } catch (error) {
+        message.respond({
+            returnValue: false,
+            errorText: error.stack
+        });
+    }
 });
 
-const HOSTS_FILE_PATH = '/etc/hosts';
-const UPDATE_DOMAINS_FILE = path.join(__dirname, 'lg_update_domains.txt');
+var HOSTS_FILE_PATH = '/etc/hosts';
+var UPDATE_DOMAINS_FILE = path.join(__dirname, 'lg_update_domains.txt');
 
 service.register('checkHostsStatus', function(message) {
     try {
-        const hostsContent = fs.readFileSync(HOSTS_FILE_PATH, 'utf8');
-        const lgtvsdpCount = (hostsContent.match(/lgtvsdp\.com/g) || []).length;
-        
+        var hostsContent = fs.readFileSync(HOSTS_FILE_PATH, 'utf8');
+        var matches = hostsContent.match(/lgtvsdp\.com/g);
+        var lgtvsdpCount = matches ? matches.length : 0;
+
         message.respond({
             returnValue: true,
             blockedDomainsCount: lgtvsdpCount
@@ -196,43 +195,40 @@ service.register('checkHostsStatus', function(message) {
 
 service.register('addUpdateDomains', function(message) {
     try {
-        // Read the update domains file
-        const updateDomains = fs.readFileSync(UPDATE_DOMAINS_FILE, 'utf8')
-            .split('\n')
-            .filter(line => line.trim())
-            .map(domain => domain.trim());
-        
-        // Read current hosts file
-        let hostsContent = fs.readFileSync(HOSTS_FILE_PATH, 'utf8');
-        
-        // Add domains that aren't already in the hosts file
-        let addedCount = 0;
-        const hostsEntries = updateDomains.map(domain => {
-            if (!hostsContent.includes(domain)) {
+        var fileContent = fs.readFileSync(UPDATE_DOMAINS_FILE, 'utf8');
+        var updateDomains = fileContent.split('\n').filter(function(line) {
+            return line.trim();
+        }).map(function(domain) {
+            return domain.trim();
+        });
+
+        var hostsContent = fs.readFileSync(HOSTS_FILE_PATH, 'utf8');
+
+        var addedCount = 0;
+        var hostsEntries = [];
+        for (var i = 0; i < updateDomains.length; i++) {
+            var domain = updateDomains[i];
+            if (hostsContent.indexOf(domain) === -1) {
                 addedCount++;
-                return `0.0.0.0 ${domain}`;
+                hostsEntries.push('0.0.0.0 ' + domain);
             }
-            return null;
-        }).filter(entry => entry !== null);
-        
+        }
+
         if (hostsEntries.length > 0) {
-            // Ensure hosts file ends with newline
-            if (!hostsContent.endsWith('\n')) {
+            if (hostsContent.charAt(hostsContent.length - 1) !== '\n') {
                 hostsContent += '\n';
             }
-            
-            // Add header and entries
+
             hostsContent += '\n# LG App Update Blocker - Update domains\n';
             hostsContent += hostsEntries.join('\n');
             hostsContent += '\n';
-            
-            // Write back to hosts file
+
             fs.writeFileSync(HOSTS_FILE_PATH, hostsContent);
         }
-        
+
         message.respond({
             returnValue: true,
-            message: `Added ${addedCount} update domains to hosts file`,
+            message: 'Added ' + addedCount + ' update domains to hosts file',
             addedCount: addedCount
         });
     } catch (error) {
@@ -245,20 +241,19 @@ service.register('addUpdateDomains', function(message) {
 
 service.register('removeUpdateDomains', function(message) {
     try {
-        // Read current hosts file
-        let hostsContent = fs.readFileSync(HOSTS_FILE_PATH, 'utf8');
-        
-        // Split into lines and filter out lgtvsdp.com lines
-        const lines = hostsContent.split('\n');
-        const filteredLines = lines.filter(line => !line.includes('lgtvsdp.com'));
-        const removedCount = lines.length - filteredLines.length;
-        
-        // Write back to hosts file
+        var hostsContent = fs.readFileSync(HOSTS_FILE_PATH, 'utf8');
+
+        var lines = hostsContent.split('\n');
+        var filteredLines = lines.filter(function(line) {
+            return line.indexOf('lgtvsdp.com') === -1;
+        });
+        var removedCount = lines.length - filteredLines.length;
+
         fs.writeFileSync(HOSTS_FILE_PATH, filteredLines.join('\n'));
-        
+
         message.respond({
             returnValue: true,
-            message: `Removed ${removedCount} update domains from hosts file`,
+            message: 'Removed ' + removedCount + ' update domains from hosts file',
             removedCount: removedCount
         });
     } catch (error) {
@@ -269,49 +264,50 @@ service.register('removeUpdateDomains', function(message) {
     }
 });
 
-const SSH_KEYS_PATH = '/home/root/.ssh/authorized_keys';
+var SSH_KEYS_PATH = '/home/root/.ssh/authorized_keys';
 
 service.register('listSSHKeys', function(message) {
     try {
-        // Check if .ssh directory exists
         if (!fs.existsSync('/home/root/.ssh')) {
             message.respond({
                 returnValue: true,
                 keys: [],
                 count: 0,
-                message: "No SSH directory found"
+                message: 'No SSH directory found'
             });
             return;
         }
-        
-        // Check if authorized_keys file exists
+
         if (!fs.existsSync(SSH_KEYS_PATH)) {
             message.respond({
                 returnValue: true,
                 keys: [],
                 count: 0,
-                message: "No authorized_keys file found"
+                message: 'No authorized_keys file found'
             });
             return;
         }
-        
-        // Read the authorized_keys file
-        const content = fs.readFileSync(SSH_KEYS_PATH, 'utf8');
-        const lines = content.split('\n').filter(line => line.trim() && !line.startsWith('#'));
-        
-        // Parse keys to extract key type and comment
-        const keys = lines.map(line => {
-            const parts = line.trim().split(' ');
+
+        var content = fs.readFileSync(SSH_KEYS_PATH, 'utf8');
+        var allLines = content.split('\n');
+        var lines = allLines.filter(function(line) {
+            var trimmed = line.trim();
+            return trimmed && trimmed.charAt(0) !== '#';
+        });
+
+        var keys = [];
+        for (var i = 0; i < lines.length; i++) {
+            var line = lines[i];
+            var parts = line.trim().split(' ');
             if (parts.length >= 2) {
-                return {
+                keys.push({
                     type: parts[0],
-                    key: parts[1].substring(0, 20) + '...',  // Show first 20 chars of key
+                    key: parts[1].substring(0, 20) + '...',
                     comment: parts[2] || 'no comment'
-                };
+                });
             }
-            return null;
-        }).filter(key => key !== null);
-        
+        }
+
         message.respond({
             returnValue: true,
             keys: keys,
@@ -327,30 +323,27 @@ service.register('listSSHKeys', function(message) {
 
 service.register('clearSSHKeys', function(message) {
     try {
-        // Check if .ssh directory exists
         if (!fs.existsSync('/home/root/.ssh')) {
             message.respond({
                 returnValue: true,
-                message: "No SSH directory found, nothing to clear"
+                message: 'No SSH directory found, nothing to clear'
             });
             return;
         }
-        
-        // Check if authorized_keys file exists
+
         if (!fs.existsSync(SSH_KEYS_PATH)) {
             message.respond({
                 returnValue: true,
-                message: "No authorized_keys file found, nothing to clear"
+                message: 'No authorized_keys file found, nothing to clear'
             });
             return;
         }
-        
-        // Clear the file by writing empty content
+
         fs.writeFileSync(SSH_KEYS_PATH, '');
-        
+
         message.respond({
             returnValue: true,
-            message: "SSH keys cleared successfully"
+            message: 'SSH keys cleared successfully'
         });
     } catch (error) {
         message.respond({
@@ -362,57 +355,61 @@ service.register('clearSSHKeys', function(message) {
 
 service.register('addSSHKey', function(message) {
     try {
-        const sshKey = message.payload.key;
-        
+        var sshKey = message.payload.key;
+
         if (!sshKey || sshKey.trim() === '') {
             message.respond({
                 returnValue: false,
-                errorText: "SSH key cannot be empty"
+                errorText: 'SSH key cannot be empty'
             });
             return;
         }
-        
-        // Validate SSH key format (basic check)
-        const keyParts = sshKey.trim().split(' ');
-        if (keyParts.length < 2 || !['ssh-rsa', 'ssh-ed25519', 'ecdsa-sha2-nistp256', 'ssh-dss'].includes(keyParts[0])) {
+
+        var keyParts = sshKey.trim().split(' ');
+        var validTypes = ['ssh-rsa', 'ssh-ed25519', 'ecdsa-sha2-nistp256', 'ssh-dss'];
+        var isValidType = false;
+        for (var i = 0; i < validTypes.length; i++) {
+            if (validTypes[i] === keyParts[0]) {
+                isValidType = true;
+                break;
+            }
+        }
+
+        if (keyParts.length < 2 || !isValidType) {
             message.respond({
                 returnValue: false,
-                errorText: "Invalid SSH key format. Key should start with ssh-rsa, ssh-ed25519, etc."
+                errorText: 'Invalid SSH key format. Key should start with ssh-rsa, ssh-ed25519, etc.'
             });
             return;
         }
-        
-        // Ensure .ssh directory exists
-        const sshDir = '/home/root/.ssh';
+
+        var sshDir = '/home/root/.ssh';
         if (!fs.existsSync(sshDir)) {
-            fs.mkdirSync(sshDir, { recursive: true, mode: 0o700 });
+            fs.mkdirSync(sshDir);
+            fs.chmodSync(sshDir, '700');
         }
-        
-        // Read existing keys
-        let existingKeys = '';
+
+        var existingKeys = '';
         if (fs.existsSync(SSH_KEYS_PATH)) {
             existingKeys = fs.readFileSync(SSH_KEYS_PATH, 'utf8');
         }
-        
-        // Check if key already exists
-        if (existingKeys.includes(keyParts[1])) {
+
+        if (existingKeys.indexOf(keyParts[1]) !== -1) {
             message.respond({
                 returnValue: false,
-                errorText: "This SSH key already exists"
+                errorText: 'This SSH key already exists'
             });
             return;
         }
-        
-        // Append the new key
-        const newKey = sshKey.trim() + '\n';
+
+        var newKey = sshKey.trim() + '\n';
         fs.appendFileSync(SSH_KEYS_PATH, newKey);
-        
-        // Set proper permissions
-        fs.chmodSync(SSH_KEYS_PATH, 0o600);
-        
+
+        fs.chmodSync(SSH_KEYS_PATH, '600');
+
         message.respond({
             returnValue: true,
-            message: "SSH key added successfully"
+            message: 'SSH key added successfully'
         });
     } catch (error) {
         message.respond({

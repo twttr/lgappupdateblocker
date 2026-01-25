@@ -1,5 +1,102 @@
 import "webostvjs/webOSTV";
 
+var debugLogEl = document.getElementById('debugLog');
+var debugOverlay = document.getElementById('debugOverlay');
+var debugToggleBtn = document.getElementById('debugToggle');
+var debugClearBtn = document.getElementById('debugClear');
+
+if (typeof __DEBUG__ !== 'undefined' && __DEBUG__) {
+    debugOverlay.classList.add('visible');
+
+    var originalConsoleLog = console.log.bind(console);
+    var originalConsoleError = console.error.bind(console);
+    var originalConsoleWarn = console.warn.bind(console);
+
+    function getTimestamp() {
+        var now = new Date();
+        var ms = String(now.getMilliseconds());
+        while (ms.length < 3) ms = '0' + ms;
+        return now.toLocaleTimeString('en-US', { hour12: false }) + '.' + ms;
+    }
+
+    function addDebugEntry(message, type) {
+        var entry = document.createElement('div');
+        entry.className = 'log-entry ' + (type || 'log');
+        entry.textContent = '[' + getTimestamp() + '] ' + message;
+        debugLogEl.appendChild(entry);
+        debugLogEl.scrollTop = debugLogEl.scrollHeight;
+    }
+
+    console.log = function() {
+        var args = Array.prototype.slice.call(arguments);
+        originalConsoleLog.apply(console, args);
+        var msg = args.map(function(a) { return typeof a === 'object' ? JSON.stringify(a) : String(a); }).join(' ');
+        addDebugEntry(msg, 'log');
+    };
+
+    console.error = function() {
+        var args = Array.prototype.slice.call(arguments);
+        originalConsoleError.apply(console, args);
+        var msg = args.map(function(a) { return typeof a === 'object' ? JSON.stringify(a) : String(a); }).join(' ');
+        addDebugEntry(msg, 'error');
+    };
+
+    console.warn = function() {
+        var args = Array.prototype.slice.call(arguments);
+        originalConsoleWarn.apply(console, args);
+        var msg = args.map(function(a) { return typeof a === 'object' ? JSON.stringify(a) : String(a); }).join(' ');
+        addDebugEntry(msg, 'warn');
+    };
+
+    debugToggleBtn.onclick = function() {
+        if (debugOverlay.classList.contains('collapsed')) {
+            debugOverlay.classList.remove('collapsed');
+            debugToggleBtn.textContent = 'Hide';
+        } else {
+            debugOverlay.classList.add('collapsed');
+            debugToggleBtn.textContent = 'Show';
+        }
+    };
+
+    debugClearBtn.onclick = function() {
+        debugLogEl.innerHTML = '';
+        console.log('Debug log cleared');
+    };
+
+    console.log('Debug overlay initialized');
+}
+
+function serviceRequestWithTimeout(uri, method, params, onSuccess, onFailure, timeoutMs = 5000) {
+    let responded = false;
+    const timeoutId = setTimeout(() => {
+        if (!responded) {
+            responded = true;
+            console.error('SERVICE TIMEOUT after ' + timeoutMs + 'ms: ' + method);
+            console.error('This usually means the service is not running or not elevated');
+            onFailure({ errorCode: -1, errorText: 'Request timed out - service may not be running' });
+        }
+    }, timeoutMs);
+
+    webOS.service.request(uri, {
+        method: method,
+        parameters: params,
+        onSuccess: function(res) {
+            if (!responded) {
+                responded = true;
+                clearTimeout(timeoutId);
+                onSuccess(res);
+            }
+        },
+        onFailure: function(error) {
+            if (!responded) {
+                responded = true;
+                clearTimeout(timeoutId);
+                onFailure(error);
+            }
+        }
+    });
+}
+
 const responseEl = document.getElementById('response');
 const updateInfoEl = document.getElementById('updateInfoContent');
 const refreshBtn = document.getElementById('refreshUpdateInfo');
@@ -62,73 +159,84 @@ function enableButtons() {
 }
 
 function checkHostsStatus() {
-    webOS.service.request("luna://org.webosbrew.appupdateblocker.service", {
-        method: "checkHostsStatus",
-        parameters: {},
-        onSuccess: function (res) {
+    console.log('Calling checkHostsStatus...');
+    serviceRequestWithTimeout(
+        "luna://org.webosbrew.appupdateblocker.service",
+        "checkHostsStatus",
+        {},
+        function (res) {
+            console.log('checkHostsStatus SUCCESS:', res);
             if (res.blockedDomainsCount > 0) {
                 hostsStatusEl.innerText = `${res.blockedDomainsCount} update domains are currently blocked`;
-                hostsStatusEl.style.color = 'var(--success-color)';  // Green - good!
+                hostsStatusEl.style.color = 'var(--success-color)';
                 if (serviceElevated) {
                     addDomainsBtn.disabled = true;
                     removeDomainsBtn.disabled = false;
                 }
             } else {
                 hostsStatusEl.innerText = 'No update domains are currently blocked';
-                hostsStatusEl.style.color = 'var(--error-color)';  // Red - bad!
+                hostsStatusEl.style.color = 'var(--error-color)';
                 if (serviceElevated) {
                     addDomainsBtn.disabled = false;
                     removeDomainsBtn.disabled = true;
                 }
             }
         },
-        onFailure: function (error) {
+        function (error) {
+            console.error('checkHostsStatus FAILED:', error);
             hostsStatusEl.innerText = 'Failed to check hosts file status';
             hostsStatusEl.style.color = 'var(--error-color)';
         }
-    });
+    );
 }
 
 function checkPersistentScript() {
-    webOS.service.request("luna://org.webosbrew.appupdateblocker.service", {
-        method: "checkPersistentScript",
-        parameters: {},
-        onSuccess: function (res) {
+    console.log('Calling checkPersistentScript...');
+    serviceRequestWithTimeout(
+        "luna://org.webosbrew.appupdateblocker.service",
+        "checkPersistentScript",
+        {},
+        function (res) {
+            console.log('checkPersistentScript SUCCESS:', res);
             if (res.exists) {
                 persistentStatusEl.innerText = 'Persistent script is installed';
-                persistentStatusEl.style.color = 'var(--success-color)';  // Green - good!
+                persistentStatusEl.style.color = 'var(--success-color)';
                 if (serviceElevated) {
                     installPersistentBtn.disabled = true;
                     removePersistentBtn.disabled = false;
                 }
             } else {
                 persistentStatusEl.innerText = 'Persistent script is not installed';
-                persistentStatusEl.style.color = 'var(--error-color)';  // Red - bad!
+                persistentStatusEl.style.color = 'var(--error-color)';
                 if (serviceElevated) {
                     installPersistentBtn.disabled = false;
                     removePersistentBtn.disabled = true;
                 }
             }
         },
-        onFailure: function (error) {
+        function (error) {
+            console.error('checkPersistentScript FAILED:', error);
             persistentStatusEl.innerText = 'Failed to check persistent script status';
             persistentStatusEl.style.color = 'var(--error-color)';
         }
-    });
+    );
 }
 
 function loadSSHKeys() {
-    webOS.service.request("luna://org.webosbrew.appupdateblocker.service", {
-        method: "listSSHKeys",
-        parameters: {},
-        onSuccess: function (res) {
+    console.log('Calling listSSHKeys...');
+    serviceRequestWithTimeout(
+        "luna://org.webosbrew.appupdateblocker.service",
+        "listSSHKeys",
+        {},
+        function (res) {
+            console.log('listSSHKeys SUCCESS:', res);
             if (res.count === 0) {
                 sshKeysContentEl.innerHTML = '<p>No SSH keys found</p>';
                 if (serviceElevated) {
                     clearSSHKeysBtn.disabled = true;
                 }
             } else {
-                const keysList = res.keys.map(key => 
+                const keysList = res.keys.map(key =>
                     `<li><strong>${key.type}</strong>: ${key.key} <em>(${key.comment})</em></li>`
                 ).join('');
                 sshKeysContentEl.innerHTML = `<p>Found ${res.count} SSH key(s):</p><ul style="margin: 10px 0; padding-left: 20px;">${keysList}</ul>`;
@@ -137,19 +245,22 @@ function loadSSHKeys() {
                 }
             }
         },
-        onFailure: function (error) {
+        function (error) {
+            console.error('listSSHKeys FAILED:', error);
             sshKeysContentEl.innerHTML = '<p>Failed to load SSH keys: ' + error.errorText + '</p>';
         }
-    });
+    );
 }
 
 function loadUpdateInfo() {
-    webOS.service.request("luna://org.webosbrew.appupdateblocker.service", {
-        method: "readUpdateInfo",
-        parameters: {},
-        onSuccess: function (res) {
+    console.log('Calling readUpdateInfo...');
+    serviceRequestWithTimeout(
+        "luna://org.webosbrew.appupdateblocker.service",
+        "readUpdateInfo",
+        {},
+        function (res) {
+            console.log('readUpdateInfo SUCCESS:', res);
             updateInfoEl.innerHTML = formatUpdateInfo(res.content);
-            // Enable/disable clear button based on whether there are blocked apps
             if (serviceElevated && res.content) {
                 try {
                     const data = JSON.parse(res.content);
@@ -159,25 +270,29 @@ function loadUpdateInfo() {
                 }
             }
         },
-        onFailure: function (error) {
+        function (error) {
+            console.error('readUpdateInfo FAILED:', error);
             updateInfoEl.innerHTML = "<p>Failed to read blocked apps status: " + error.errorText + "</p>";
         }
-    });
+    );
 }
 
-console.log("Checking for root...");
+console.log("App starting - checking for root...");
+console.log("Calling luna://org.webosbrew.hbchannel.service/getConfiguration");
 webOS.service.request("luna://org.webosbrew.hbchannel.service", {
     method: "getConfiguration",
     parameters: {},
     onSuccess: function (config) {
-        console.log(JSON.stringify(config));
+        console.log("getConfiguration SUCCESS:", config);
         if (config.root) {
-            console.log("Homebrew channel is elevated, attempting to elevate service...");
+            console.log("Homebrew channel has root=true, attempting to elevate service...");
+            console.log("Calling luna://org.webosbrew.hbchannel.service/exec");
             webOS.service.request("luna://org.webosbrew.hbchannel.service", {
                 method: "exec",
                 parameters: {"command": "/media/developer/apps/usr/palm/services/org.webosbrew.hbchannel.service/elevate-service org.webosbrew.appupdateblocker.service"},
                 onSuccess: function (response) {
-                    console.log("Service is elevated!");
+                    console.log("exec (elevate-service) SUCCESS:", response);
+                    console.log("Service is now elevated - enabling buttons");
                     showMessage("Service elevated successfully");
                     enableButtons();
                     loadUpdateInfo();
@@ -186,21 +301,24 @@ webOS.service.request("luna://org.webosbrew.hbchannel.service", {
                     loadSSHKeys();
                 },
                 onFailure: function (error) {
-                    console.log("Failed to elevate service!");
-                    console.log("[" + error.errorCode + "]: " + error.errorText);
+                    console.error("exec (elevate-service) FAILED!");
+                    console.error("Error code:", error.errorCode);
+                    console.error("Error text:", error.errorText);
                     showMessage("Failed to elevate service: " + error.errorText, true);
                     return;
                 }
             });
         } else {
-            console.log("Cannot elevate service.");
-            console.log("Homebrew channel must have root!");
+            console.warn("config.root is false or undefined!");
+            console.warn("Homebrew channel must have root enabled!");
             showMessage("Homebrew channel must have root!", true);
         }
     },
     onFailure: function (error) {
-        console.log("Failed to check for root! Do you have the homebrew channel installed? Are you rooted? The root status in the homebrew channel settings needs to say ok.");
-        console.log("[" + error.errorCode + "]: " + error.errorText);
+        console.error("getConfiguration FAILED!");
+        console.error("Error code:", error.errorCode);
+        console.error("Error text:", error.errorText);
+        console.error("Make sure: 1) Homebrew Channel is installed, 2) TV is rooted, 3) Root status shows 'ok' in HB Channel settings");
         showMessage("Failed to check for root: " + error.errorText, true);
         return;
     }
@@ -213,73 +331,93 @@ document.getElementById('refreshUpdateInfo').onclick = function() {
 }
 
 document.getElementById('clearUpdateInfo').onclick = function() {
-    webOS.service.request("luna://org.webosbrew.appupdateblocker.service", {
-        method: "clearUpdateInfo",
-        parameters: {},
-        onSuccess: function (res) {
+    console.log('Calling clearUpdateInfo...');
+    serviceRequestWithTimeout(
+        "luna://org.webosbrew.appupdateblocker.service",
+        "clearUpdateInfo",
+        {},
+        function (res) {
+            console.log('clearUpdateInfo SUCCESS:', res);
             showMessage(res.message);
             loadUpdateInfo();
         },
-        onFailure: function (error) {
+        function (error) {
+            console.error('clearUpdateInfo FAILED:', error);
             showMessage("Failed to remove forced update apps: " + error.errorText, true);
         }
-    });
+    );
 }
 
 document.getElementById('addUpdateDomains').onclick = function() {
-    webOS.service.request("luna://org.webosbrew.appupdateblocker.service", {
-        method: "addUpdateDomains",
-        parameters: {},
-        onSuccess: function (res) {
+    console.log('Calling addUpdateDomains...');
+    serviceRequestWithTimeout(
+        "luna://org.webosbrew.appupdateblocker.service",
+        "addUpdateDomains",
+        {},
+        function (res) {
+            console.log('addUpdateDomains SUCCESS:', res);
             showMessage(res.message);
             checkHostsStatus();
         },
-        onFailure: function (error) {
+        function (error) {
+            console.error('addUpdateDomains FAILED:', error);
             showMessage("Failed to add update domains: " + error.errorText, true);
         }
-    });
+    );
 }
 
 document.getElementById('removeUpdateDomains').onclick = function() {
-    webOS.service.request("luna://org.webosbrew.appupdateblocker.service", {
-        method: "removeUpdateDomains",
-        parameters: {},
-        onSuccess: function (res) {
+    console.log('Calling removeUpdateDomains...');
+    serviceRequestWithTimeout(
+        "luna://org.webosbrew.appupdateblocker.service",
+        "removeUpdateDomains",
+        {},
+        function (res) {
+            console.log('removeUpdateDomains SUCCESS:', res);
             showMessage(res.message);
             checkHostsStatus();
         },
-        onFailure: function (error) {
+        function (error) {
+            console.error('removeUpdateDomains FAILED:', error);
             showMessage("Failed to remove update domains: " + error.errorText, true);
         }
-    });
+    );
 }
 
 document.getElementById('installPersistentScript').onclick = function() {
-    webOS.service.request("luna://org.webosbrew.appupdateblocker.service", {
-        method: "installPersistentScript",
-        parameters: {},
-        onSuccess: function (res) {
+    console.log('Calling installPersistentScript...');
+    serviceRequestWithTimeout(
+        "luna://org.webosbrew.appupdateblocker.service",
+        "installPersistentScript",
+        {},
+        function (res) {
+            console.log('installPersistentScript SUCCESS:', res);
             showMessage(res.message);
             checkPersistentScript();
         },
-        onFailure: function (error) {
+        function (error) {
+            console.error('installPersistentScript FAILED:', error);
             showMessage("Failed to install persistent script: " + error.errorText, true);
         }
-    });
+    );
 }
 
 document.getElementById('removePersistentScript').onclick = function() {
-    webOS.service.request("luna://org.webosbrew.appupdateblocker.service", {
-        method: "removePersistentScript",
-        parameters: {},
-        onSuccess: function (res) {
+    console.log('Calling removePersistentScript...');
+    serviceRequestWithTimeout(
+        "luna://org.webosbrew.appupdateblocker.service",
+        "removePersistentScript",
+        {},
+        function (res) {
+            console.log('removePersistentScript SUCCESS:', res);
             showMessage(res.message);
             checkPersistentScript();
         },
-        onFailure: function (error) {
+        function (error) {
+            console.error('removePersistentScript FAILED:', error);
             showMessage("Failed to remove persistent script: " + error.errorText, true);
         }
-    });
+    );
 }
 
 document.getElementById('refreshSSHKeys').onclick = function() {
@@ -289,40 +427,47 @@ document.getElementById('refreshSSHKeys').onclick = function() {
 
 document.getElementById('clearSSHKeys').onclick = function() {
     if (confirm('Are you sure you want to clear all SSH keys? This will remove root SSH access.')) {
-        webOS.service.request("luna://org.webosbrew.appupdateblocker.service", {
-            method: "clearSSHKeys",
-            parameters: {},
-            onSuccess: function (res) {
+        console.log('Calling clearSSHKeys...');
+        serviceRequestWithTimeout(
+            "luna://org.webosbrew.appupdateblocker.service",
+            "clearSSHKeys",
+            {},
+            function (res) {
+                console.log('clearSSHKeys SUCCESS:', res);
                 showMessage(res.message);
                 loadSSHKeys();
             },
-            onFailure: function (error) {
+            function (error) {
+                console.error('clearSSHKeys FAILED:', error);
                 showMessage("Failed to clear SSH keys: " + error.errorText, true);
             }
-        });
+        );
     }
 }
 
 document.getElementById('addSSHKey').onclick = function() {
     const sshKey = sshKeyInput.value.trim();
-    
+
     if (!sshKey) {
+        console.warn('addSSHKey: No key provided');
         showMessage("Please enter an SSH key", true);
         return;
     }
-    
-    webOS.service.request("luna://org.webosbrew.appupdateblocker.service", {
-        method: "addSSHKey",
-        parameters: {
-            key: sshKey
-        },
-        onSuccess: function (res) {
+
+    console.log('Calling addSSHKey...');
+    serviceRequestWithTimeout(
+        "luna://org.webosbrew.appupdateblocker.service",
+        "addSSHKey",
+        { key: sshKey },
+        function (res) {
+            console.log('addSSHKey SUCCESS:', res);
             showMessage(res.message);
-            sshKeyInput.value = '';  // Clear the input
-            loadSSHKeys();  // Refresh the key list
+            sshKeyInput.value = '';
+            loadSSHKeys();
         },
-        onFailure: function (error) {
+        function (error) {
+            console.error('addSSHKey FAILED:', error);
             showMessage("Failed to add SSH key: " + error.errorText, true);
         }
-    });
+    );
 }
