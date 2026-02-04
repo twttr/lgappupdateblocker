@@ -1,0 +1,129 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Install webOS CLI
+        run: npm install -g @webos-tools/cli
+
+      - name: Package IPK
+        run: ares-package -n dist -o .
+
+      - name: Generate manifest
+        run: |
+          IPK_FILE=$(ls *.ipk)
+          VERSION=${GITHUB_REF_NAME#v}
+          SHA256=$(sha256sum "$IPK_FILE" | cut -d' ' -f1)
+          cat > org.webosbrew.appupdateblocker.manifest.json << EOF
+          {
+            "id": "org.webosbrew.appupdateblocker",
+            "version": "$VERSION",
+            "type": "web",
+            "title": "LG App Update Blocker",
+            "appDescription": "Block forced app updates on LG webOS TVs. Clear update requirements and block LG update servers.",
+            "iconUri": "https://raw.githubusercontent.com/dr0dr1dr2dr3/lgappupdateblocker/master/assets/icon.png",
+            "sourceUrl": "https://github.com/dr0dr1dr2dr3/lgappupdateblocker",
+            "rootRequired": true,
+            "ipkUrl": "$IPK_FILE",
+            "ipkHash": {
+              "sha256": "$SHA256"
+            }
+          }
+          EOF
+
+      - name: Upload IPK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lgappupdateblocker-${{ github.ref_name }}
+          path: '*.ipk'
+
+      - name: Upload icons artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: icons
+          path: |
+            dist/icon.png
+            dist/largeIcon.png
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            *.ipk
+            org.webosbrew.appupdateblocker.manifest.json
+          generate_release_notes: true
+
+  update-homebrew:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download IPK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: lgappupdateblocker-${{ github.ref_name }}
+          path: ./ipk
+
+      - name: Download icons artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: icons
+          path: ./icons
+
+      - name: Checkout homebrew repo
+        uses: actions/checkout@v4
+        with:
+          repository: twttr/webos-apps
+          token: ${{ secrets.HOMEBREW_PAT }}
+          path: homebrew
+
+      - name: Update LG App Update Blocker
+        run: |
+          mkdir -p homebrew/apps/org.webosbrew.appupdateblocker
+          rm -f homebrew/apps/org.webosbrew.appupdateblocker/*.ipk
+          cp ipk/*.ipk homebrew/apps/org.webosbrew.appupdateblocker/
+          cp icons/icon.png homebrew/apps/org.webosbrew.appupdateblocker/
+          cp icons/largeIcon.png homebrew/apps/org.webosbrew.appupdateblocker/
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Generate manifest
+        run: node scripts/generate-manifest.js
+        working-directory: homebrew
+
+      - name: Commit and push
+        run: |
+          cd homebrew
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Update LG App Update Blocker to ${{ github.ref_name }}"
+          git push

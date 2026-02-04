@@ -1,5 +1,13 @@
 import "webostvjs/webOSTV";
 
+var SERVICE_URI = "luna://org.webosbrew.appupdateblocker.service";
+
+function escapeHtml(text) {
+    var div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 var debugLogEl = document.getElementById('debugLog');
 var debugOverlay = document.getElementById('debugOverlay');
 var debugToggleBtn = document.getElementById('debugToggle');
@@ -134,7 +142,7 @@ function formatUpdateInfo(content) {
         
         // Apps are blocked - create a formatted list
         const appIds = data.map(app => app.id).filter(id => id);
-        const listItems = appIds.map(id => `<li>${id}</li>`).join('');
+        const listItems = appIds.map(id => `<li>${escapeHtml(id)}</li>`).join('');
         
         const html = '<div class="blocked-apps-warning">Apps blocked until update:</div>' +
                     '<ul style="margin-top: 10px; padding-left: 20px;">' + listItems + '</ul>';
@@ -161,7 +169,7 @@ function enableButtons() {
 function checkHostsStatus() {
     console.log('Calling checkHostsStatus...');
     serviceRequestWithTimeout(
-        "luna://org.webosbrew.appupdateblocker.service",
+        SERVICE_URI,
         "checkHostsStatus",
         {},
         function (res) {
@@ -193,7 +201,7 @@ function checkHostsStatus() {
 function checkPersistentScript() {
     console.log('Calling checkPersistentScript...');
     serviceRequestWithTimeout(
-        "luna://org.webosbrew.appupdateblocker.service",
+        SERVICE_URI,
         "checkPersistentScript",
         {},
         function (res) {
@@ -225,7 +233,7 @@ function checkPersistentScript() {
 function loadSSHKeys() {
     console.log('Calling listSSHKeys...');
     serviceRequestWithTimeout(
-        "luna://org.webosbrew.appupdateblocker.service",
+        SERVICE_URI,
         "listSSHKeys",
         {},
         function (res) {
@@ -237,7 +245,7 @@ function loadSSHKeys() {
                 }
             } else {
                 const keysList = res.keys.map(key =>
-                    `<li><strong>${key.type}</strong>: ${key.key} <em>(${key.comment})</em></li>`
+                    `<li><strong>${escapeHtml(key.type)}</strong>: ${escapeHtml(key.key)} <em>(${escapeHtml(key.comment)})</em></li>`
                 ).join('');
                 sshKeysContentEl.innerHTML = `<p>Found ${res.count} SSH key(s):</p><ul style="margin: 10px 0; padding-left: 20px;">${keysList}</ul>`;
                 if (serviceElevated) {
@@ -255,7 +263,7 @@ function loadSSHKeys() {
 function loadUpdateInfo() {
     console.log('Calling readUpdateInfo...');
     serviceRequestWithTimeout(
-        "luna://org.webosbrew.appupdateblocker.service",
+        SERVICE_URI,
         "readUpdateInfo",
         {},
         function (res) {
@@ -333,7 +341,7 @@ document.getElementById('refreshUpdateInfo').onclick = function() {
 document.getElementById('clearUpdateInfo').onclick = function() {
     console.log('Calling clearUpdateInfo...');
     serviceRequestWithTimeout(
-        "luna://org.webosbrew.appupdateblocker.service",
+        SERVICE_URI,
         "clearUpdateInfo",
         {},
         function (res) {
@@ -351,7 +359,7 @@ document.getElementById('clearUpdateInfo').onclick = function() {
 document.getElementById('addUpdateDomains').onclick = function() {
     console.log('Calling addUpdateDomains...');
     serviceRequestWithTimeout(
-        "luna://org.webosbrew.appupdateblocker.service",
+        SERVICE_URI,
         "addUpdateDomains",
         {},
         function (res) {
@@ -369,7 +377,7 @@ document.getElementById('addUpdateDomains').onclick = function() {
 document.getElementById('removeUpdateDomains').onclick = function() {
     console.log('Calling removeUpdateDomains...');
     serviceRequestWithTimeout(
-        "luna://org.webosbrew.appupdateblocker.service",
+        SERVICE_URI,
         "removeUpdateDomains",
         {},
         function (res) {
@@ -387,7 +395,7 @@ document.getElementById('removeUpdateDomains').onclick = function() {
 document.getElementById('installPersistentScript').onclick = function() {
     console.log('Calling installPersistentScript...');
     serviceRequestWithTimeout(
-        "luna://org.webosbrew.appupdateblocker.service",
+        SERVICE_URI,
         "installPersistentScript",
         {},
         function (res) {
@@ -405,7 +413,7 @@ document.getElementById('installPersistentScript').onclick = function() {
 document.getElementById('removePersistentScript').onclick = function() {
     console.log('Calling removePersistentScript...');
     serviceRequestWithTimeout(
-        "luna://org.webosbrew.appupdateblocker.service",
+        SERVICE_URI,
         "removePersistentScript",
         {},
         function (res) {
@@ -429,7 +437,7 @@ document.getElementById('clearSSHKeys').onclick = function() {
     if (confirm('Are you sure you want to clear all SSH keys? This will remove root SSH access.')) {
         console.log('Calling clearSSHKeys...');
         serviceRequestWithTimeout(
-            "luna://org.webosbrew.appupdateblocker.service",
+            SERVICE_URI,
             "clearSSHKeys",
             {},
             function (res) {
@@ -456,7 +464,7 @@ document.getElementById('addSSHKey').onclick = function() {
 
     console.log('Calling addSSHKey...');
     serviceRequestWithTimeout(
-        "luna://org.webosbrew.appupdateblocker.service",
+        SERVICE_URI,
         "addSSHKey",
         { key: sshKey },
         function (res) {

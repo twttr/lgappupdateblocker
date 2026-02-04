@@ -14,24 +14,6 @@ function ensureDirectoryExistence(filePath) {
 
 var service = new Service(pkgInfo.name);
 
-service.register('hello', function(message) {
-    console.log('Hello method called');
-
-    message.respond({
-        returnValue: true,
-        response: 'world'
-    });
-});
-
-service.register('/hello', function(message) {
-    console.log('/hello method called');
-
-    message.respond({
-        returnValue: true,
-        response: 'world'
-    });
-});
-
 var UPDATE_INFO_PATH = '/mnt/lg/cmn_data/var/palm/data/com.webos.appInstallService/updateInfo';
 
 service.register('readUpdateInfo', function(message) {
@@ -155,31 +137,19 @@ service.register('removePersistentScript', function(message) {
     }
 });
 
-service.register('autoblock', function(message) {
-    try {
-        ensureDirectoryExistence('/var/lib/webosbrew/init.d/appupdateblocker');
-        fs.writeFileSync('/var/lib/webosbrew/init.d/appupdateblocker', autostartScript);
-        fs.chmodSync('/var/lib/webosbrew/init.d/appupdateblocker', '755');
-        message.respond({
-            returnValue: true,
-            response: 'Created appupdateblocker script.'
-        });
-    } catch (error) {
-        message.respond({
-            returnValue: false,
-            errorText: error.stack
-        });
-    }
-});
-
 var HOSTS_FILE_PATH = '/etc/hosts';
 var UPDATE_DOMAINS_FILE = path.join(__dirname, 'lg_update_domains.txt');
 
 service.register('checkHostsStatus', function(message) {
     try {
         var hostsContent = fs.readFileSync(HOSTS_FILE_PATH, 'utf8');
-        var matches = hostsContent.match(/lgtvsdp\.com/g);
-        var lgtvsdpCount = matches ? matches.length : 0;
+        var lines = hostsContent.split('\n');
+        var lgtvsdpCount = 0;
+        for (var i = 0; i < lines.length; i++) {
+            if (lines[i].indexOf('0.0.0.0') === 0 && lines[i].indexOf('lgtvsdp.com') !== -1) {
+                lgtvsdpCount++;
+            }
+        }
 
         message.respond({
             returnValue: true,
@@ -245,7 +215,13 @@ service.register('removeUpdateDomains', function(message) {
 
         var lines = hostsContent.split('\n');
         var filteredLines = lines.filter(function(line) {
-            return line.indexOf('lgtvsdp.com') === -1;
+            if (line.indexOf('lgtvsdp.com') !== -1) {
+                return false;
+            }
+            if (line === '# LG App Update Blocker - Update domains') {
+                return false;
+            }
+            return true;
         });
         var removedCount = lines.length - filteredLines.length;
 

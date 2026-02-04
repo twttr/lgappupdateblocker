@@ -8,7 +8,8 @@
     "build:dev": "webpack",
     "package": "ares-package -n dist",
     "deploy": "ares-install ${npm_package_name}_${npm_package_version}_all.ipk",
-    "launch": "ares-launch ${npm_package_name}"
+    "launch": "ares-launch ${npm_package_name}",
+    "test": "jest"
   },
   "author": "dr0dr1dr2dr3",
   "license": "BSD",
@@ -19,6 +20,8 @@
     "whatwg-fetch": "^3.6.2"
   },
   "devDependencies": {
+    "jest": "^29.7.0",
+    "jsdom": "^24.0.0",
     "@babel/core": "^7.14.3",
     "@babel/preset-env": "^7.14.4",
     "@webosose/ares-cli": "^2.2.0",
